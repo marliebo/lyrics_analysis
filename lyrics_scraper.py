@@ -17,8 +17,14 @@ html = page.content
 #------------
 
 def get_soup(filename):
-    ''' Get html content of album webpage and soupify
-    '''
+    """Get html content of album webpage and soupify it
+
+    Args:
+        filename (str): name of html file
+
+    Returns:
+        soup: BeautifulSoup object of html file
+    """    
     f = open('wt_albums\\'+filename+'.html', 'r')
     content = f.read()
     f.close()
@@ -26,18 +32,41 @@ def get_soup(filename):
     return soup
 
 def get_album_name(soup):
-    ''' Get album name
-    '''
+    """Get album name
+
+    Args:
+        soup (BeautifulSoup object): BeautifulSoup object of html file
+
+    Returns:
+        album_name[0] (str): title of album
+    """
     album_name = re.findall(r'"([^"]*)"', soup.title.text)
     return album_name[0]
 
 def get_album_date(soup):
-    ''' Get album date
-    '''
+    """Get album date
+
+    Args:
+        soup (BeautifulSoup object): BeautifulSoup object of html file
+
+    Returns:
+        album_date[0] (str): album year of publication
+    """    
     album_date = re.findall(r'\(([0-9]{4})\)', soup.title.text)
     return album_date[0]
     
 def get_songs(soup):
+    """[summary]
+
+    Args:
+        soup (BeautifulSoup object): BeautifulSoup object of html file
+
+    Returns:
+        songs_list (list): list of <h3> level titles in html page
+            used to extract lyrics later
+        songs_infos (list): list of songs in album
+            format [['position of song in album', 'song title'], [...]]
+    """    
     songs_list = soup.find_all('h3')
     songs_infos = []
     for song in songs_list:
@@ -55,8 +84,15 @@ def get_songs(soup):
     return songs_list, songs_infos
    
 def get_lyrics(cur, end):
-    ''' Get the lyrics
-    '''
+    """Get the lyrics
+
+    Args:
+        cur ([type]): start position for lyrics extraction
+        end ([type]): end position for lyrics extraction
+
+    Returns:
+        lyrics (str): lyrics of the song
+    """    
     lyrics = ""
     while cur and cur != end:
         if isinstance(cur, NavigableString):
@@ -74,8 +110,17 @@ def get_lyrics(cur, end):
     return lyrics
 
 def add_song(f, all_songs):
-    ''' Add song infos and lyrics to the list
-    '''
+    """Add song infos and lyrics to the list
+
+    Args:
+        f (str): name of html file with lyrics
+        all_songs (list): master list of lyrics
+            format [['song_title', 'song_position', 'album_name', 'album_date', 
+                    'lyrics'], [...]]
+
+    Returns:
+        all_songs (list): all_songs list updated with new infos
+    """
     soup = get_soup(f)
     album_name = get_album_name(soup)
     album_date = get_album_date(soup)
