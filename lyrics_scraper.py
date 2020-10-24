@@ -82,6 +82,38 @@ def get_songs(soup):
             song[1] = p.sub('é', song[1])
 
     return songs_list, songs_infos
+
+def clean_lyrics(lyrics):
+    """Cleans the lyrics :
+    - replace encoding problems
+    - Copy-paste choruses and prechoruses if they've been written only once
+
+    Args:
+        lyrics (str): text extracted by the loop in get_lyrics
+    """
+    # Cleaning of encoding problems
+    # some of the texts have a ’ instead of a '
+    if 'â€™' in lyrics:
+        p = re.compile('â€™')
+        lyrics = p.sub("'", lyrics)
+    # some of the texts have a ‘ instead of a '
+    if 'â€˜' in lyrics:
+        p = re.compile('â€˜')
+        lyrics = p.sub("'", lyrics)
+    # correction of 'é' in 'Sinéad'
+    if 'Ã©' in lyrics: 
+        p = re.compile('Ã©')
+        lyrics = p.sub('é', lyrics)
+
+    p = re.compile(r'\[[^\]]*\]')
+    lyrics = p.sub("", lyrics)
+
+    # Text should start with a letter
+    # We keep the brackets, they'll be useful later
+    while len(lyrics)>0 and lyrics[0].isalpha() == False:
+        lyrics = lyrics[1:]
+   
+    return lyrics
    
 def get_lyrics(cur, end):
     """Get the lyrics
@@ -98,15 +130,11 @@ def get_lyrics(cur, end):
         if isinstance(cur, NavigableString):
             text = cur.strip()
             if len(text):
-                # some of the texts have a ’ instead of a ' so we correct that
-                if 'â€™' in text:
-                    p = re.compile('â€™')
-                    text = p.sub("'", text)
-                if 'Ã©' in text: # correction of 'é' in 'Sinéad'
-                    p = re.compile('Ã©')
-                    text = p.sub('é', text)
                 lyrics += text+' '
+            if len(text) == 0:
+                lyrics += '/ '
         cur = cur.next_element
+    lyrics = clean_lyrics(lyrics)
     return lyrics
 
 def add_song(f, all_songs):
@@ -138,16 +166,9 @@ def add_song(f, all_songs):
             start = songs_list[s].text
             lyrics = get_lyrics(soup.find('h3', text=start).next_sibling,
                                          soup.find('div', {'class':'thanks'}))
- 
-        # if the song is a cover (begins with '[original by') 
-        # or instrumental ('[instrumental]'), we don't add it to the list
-        # there are iTunes bonus tracks (begin with '[iTunes')
-        # so we use '[in' instead of just '[i'
-        if lyrics.startswith(('[o', '[in')):
-            pass
-        elif lyrics.startswith('[iTunes'):
-            lyrics = lyrics[20:] # remove '[iTunes bonus track] '
-        else:
+
+        
+        if len(lyrics) > 0:
             all_songs.append([song_title, song_position, album_name, album_date, lyrics])
 
     return all_songs
@@ -170,6 +191,10 @@ header = ['song_title', 'song_position', 'album_name', 'album_date', 'lyrics']
 # Fill the list
 for f in filenames:
     all_songs = add_song(f, all_songs)
+
+for song in all_songs:
+    print(song[0]+'\t'+song[2]+'\t'+song[4][0:4])
+
 
 # Create dataframe
 df = pd.DataFrame(all_songs, columns=header)
