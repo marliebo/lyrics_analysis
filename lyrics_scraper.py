@@ -166,8 +166,7 @@ def add_song(f, all_songs):
             start = songs_list[s].text
             lyrics = get_lyrics(soup.find('h3', text=start).next_sibling,
                                          soup.find('div', {'class':'thanks'}))
-
-        
+  
         if len(lyrics) > 0:
             all_songs.append([song_title, song_position, album_name, album_date, lyrics])
 
@@ -191,10 +190,6 @@ header = ['song_title', 'song_position', 'album_name', 'album_date', 'lyrics']
 # Fill the list
 for f in filenames:
     all_songs = add_song(f, all_songs)
-
-for song in all_songs:
-    print(song[0]+'\t'+song[2]+'\t'+song[4][0:4])
-
 
 # Create dataframe
 df = pd.DataFrame(all_songs, columns=header)
