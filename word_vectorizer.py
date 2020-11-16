@@ -27,7 +27,7 @@ def lemmatizer(text):
     return lemma_str
 
 def bow_dataframe(corpus, my_stop_words):
-    """[summary]
+    """Creates a bag-of-words dataframe from a list of texts
 
     Args:
         corpus (list): list of texts to make BOW out of 
@@ -46,17 +46,59 @@ def bow_dataframe(corpus, my_stop_words):
 
     return bow_df 
 
+def wordfreq_song(bow_df):
+    """Creates a dictionary containing, for each song, a list of the words in 
+        this song and their frequency
+
+    Args:
+        bow_df (dataframe): bag-of-words dataframe
+
+    Returns:
+        wordfreq (dict): for each song, list of words occurring and their
+            frequency
+            # wordfreq = {index: {'word1': frequency of word1, 
+            #                     'word2': frequency of word 2, ...},
+            #             ...}
+    """    
+    wordfreq = {}
+
+    for i in bow_df.index: # loop on row
+        wordfreq[i] = {}
+        for c in bow_df.columns: # loop on columns
+            if bow_df.loc[i,c] > 0:
+                wordfreq[i][c] = bow_df.loc[i,c]
+
+    return wordfreq
+
 #---------------
 # MAIN PROGRAM |
 #---------------
 
+# Ask user if they want to do the vectorizer by song or by album
+choice = ''
+while choice not in ['s', 'a']:
+    choice = input('Vectorize by song (s) or by album (a)? ')
+
+# Correct option for each choice
+if choice == 's': # user wants to vectorize by song
+    chosen_df = 'wtlyrics_df.csv'
+    lyrics_col = 5
+    export_bow_df_name = 'wtbow_df.csv'
+    export_wordfreq_name = 'wt_wordfreq.pkl'
+
+if choice == 'a': # user wants to vectorize by album
+    chosen_df = 'wtlyrics_albums_df.csv'
+    lyrics_col = 4
+    export_bow_df_name = 'wtbow_albums_df.csv'
+    export_wordfreq_name = 'wt_album_wordfreq.pkl'
+
 # Retrieve lyrics dataframe
-lyrics_df = pd.read_csv('wtlyrics_df.csv')
+lyrics_df = pd.read_csv(chosen_df)
 
 # Lemmatization
 lyrics_lemmatized = []
 for i in lyrics_df.index: # for every line in the dataframe
-    lyrics_text = lyrics_df.iloc[i,5] # take the lyrics
+    lyrics_text = lyrics_df.iloc[i,lyrics_col] # take the lyrics
     lemma_str = lemmatizer(lyrics_text) # lemmatized version of the lyrics
     lyrics_lemmatized.append(lemma_str) # append the lemmatized version to a list
 
@@ -69,21 +111,15 @@ lyrics_df['lyrics_lemmatized'] = lyrics_lemmatized
 my_stop_words = ['m', 've', 'don', 'didn', 's', 'd', 'll', 'isn', 'wasn', 
                  'weren', 't', 'aren', 'pron']
 
-bow_df = bow_dataframe(lyrics_df.iloc[:,6], my_stop_words)
+bow_df = bow_dataframe(lyrics_df.iloc[:,lyrics_col+1], my_stop_words)
 
-wordlist = {}
+# Saving of BOW dataframe
+bow_df.to_csv(export_bow_df_name)
 
-for i in bow_df.index: # loop on row
-    wordlist[i] = {}
-    for c in bow_df.columns: # loop on columns
-        if bow_df.loc[i,c] > 0:
-            wordlist[i][c] = bow_df.loc[i,c]
+# Creation of the wordfreq dictionary
+wordfreq = wordfreq_song(bow_df)
 
-# wordlist = {index: {'word1': frequency of word1, 'word2': frequency of word 2,
-#                     ...},
-#             ...}
-
-bow_df.to_csv('wtbow_df.csv')
-pickle_out = open('wt_wordlist.pkl', 'wb')
-pickle.dump(wordlist, pickle_out)
+# Saving of wordfreq dictionary
+pickle_out = open(export_wordfreq_name, 'wb')
+pickle.dump(wordfreq, pickle_out)
 pickle_out.close()
